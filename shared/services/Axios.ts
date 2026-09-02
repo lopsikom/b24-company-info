@@ -1,11 +1,11 @@
 import axios from "axios";
 
 export class AxiosHandler {
-    private readonly _axios;
-    constructor(BaseUrl : string, BaseUri : string) {
-        const Url = BaseUrl + BaseUri;
+    protected readonly _axios;
+    constructor(BaseUrl : string, data? : {header? : object}) {
         this._axios = axios.create({
-            baseURL : Url
+            baseURL : BaseUrl,
+            headers : data?.header
         })
     }
-}
+}   

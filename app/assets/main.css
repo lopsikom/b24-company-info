@@ -1,0 +1,9 @@
+@import "tailwindcss";
+
+body {
+  font-family: 'Segoe UI', sans-serif;
+}
+
+ @theme {
+  --font-sans: 'Public', sans-serif;
+ }

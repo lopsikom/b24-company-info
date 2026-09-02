@@ -7,11 +7,14 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
   modules: [
     '@bitrix24/b24jssdk-nuxt',
-    '@pinia/nuxt'
+    '@pinia/nuxt',
+    '@nuxtjs/tailwindcss',
   ],
   runtimeConfig: {
     public :{
       BaseUri : "http://localhost:3000"
-    }
-  }
+    },
+    Token : "",
+    DadataPath : ""
+  },
 })
