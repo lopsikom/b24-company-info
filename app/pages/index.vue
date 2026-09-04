@@ -1,16 +1,109 @@
 <script setup lang="ts">
 import {Icon} from "@iconify/vue"
+import { AxiosError } from "axios";
 import { initB24Frame } from "~/services/Bitrix";
+import type { CompanyWithBrandData, DadataPartyData } from "~~/shared/models/ApiModels";
 const onLoad = ref<boolean>(true);
 
 const {$api} = useNuxtApp()
 
+const isNullInfo = ref<boolean>(false);
+
+enum CompanyStatus  {
+    "ACTIVE" = "Действующая",
+    "LIQUIDATING" = "Ликвидируется",
+    "LIQUIDATED" = "Kиквидирована",
+    "BANKRUPT" = "Банкротство",
+    "REORGANIZING" = "Реоргонизация",
+    "UNKNOWN" = "Неизвестно"
+}
+enum CompanyStatusColor  {
+    "ACTIVE" = "#0088B0",
+    "LIQUIDATING" = "red",
+    "LIQUIDATED" = "red",
+    "BANKRUPT" = "red",
+    "REORGANIZING" = "yellow",
+    "UNKNOWN" = "gray"
+}
+
+enum orgType {
+    "LEGAL" = "Юридическое лицо",
+    "INDIVIDUAL" = "Индивидуальный предприниматель",
+    "UNKNOWN" = "Неизвестно"
+}
+
+
+let inn : string | null = null
+
+const companyData = ref<CompanyWithBrandData>()
+const companyInfo = computed(() => companyData.value?.data.suggestions[0] ?? null)
+const companyBrand = computed(() => companyData.value?.brand?.suggestions[0] ?? null)
+const companyOKVED = computed(() => companyData.value?.okved?.suggestions[0] ?? null)
+
+const managerStartDate = computed(() => {
+    if(!companyInfo.value?.data.management?.start_date) return null
+    const date = new Date(companyInfo.value?.data.management?.start_date);
+    return `${date.getDate() < 10 ? 0 : ''}${date.getDate()}.${date.getMonth() < 10 ? 0 : ''}${date.getMonth() + 1}.${date.getFullYear() }`
+})
+
+const companyRegistartionDate = computed(() => {
+    if(!companyInfo.value?.data.state.registration_date) return null
+    const date = new Date(companyInfo.value?.data.state.registration_date);
+    return `${date.getDate() < 10 ? 0 : ''}${date.getDate()}.${date.getMonth() < 10 ? 0 : ''}${date.getMonth() + 1}.${date.getFullYear() }`
+})
+
+const companyRegistartionDateString = computed(() => {
+    if(!companyInfo.value?.data.state.registration_date) return null
+    const date = new Date(companyInfo.value?.data.state.registration_date);
+    const diffDate = new Date((new Date()).getTime() - date.getTime());
+    const diffYear = (new Date()).getFullYear() - date.getFullYear(); 
+    return `${diffYear <= 0 ? '' : diffYear + ' лет'} ${diffDate.getMonth() + 1 + ' месяцев'} на рынке`
+})
+
 onMounted(async () => {
-    const handler = await initB24Frame();
-    const requsites = await handler.companyRequisite()
-    if(requsites.length <= 0){
-        onLoad.value = false;
-        return
+    try{
+        const handler = await initB24Frame();
+        const requsites = await handler.companyRequisite()
+        if(requsites.length <= 0){
+            onLoad.value = false;
+            return
+        }
+        let noneInn = true
+        for(const i of requsites){
+            if(i.RQ_INN){
+                inn = i.RQ_INN
+                noneInn = false;
+                break;
+            }
+        }
+        if(noneInn && !inn){ 
+            onLoad.value = false
+            return
+        }
+    }catch(e){
+        console.error(e);
+        inn = "2124040602";
+    }
+    try{
+        companyData.value = await $api.getCompanyByInn(inn!)
+        if(!companyData.value.data || companyData.value.data.suggestions.length <= 0){
+            isNullInfo.value = true
+            onLoad.value = false
+            return
+        }
+        onLoad.value = false
+        console.log(companyData.value)
+    }catch(e : unknown){
+        if(e instanceof AxiosError){
+            if(e.status === 404){
+                onLoad.value = false;
+                isNullInfo.value = true;
+                
+            }
+        }else{
+            console.error(e)
+            onLoad.value = false
+        }
     }
 })
 
@@ -19,6 +112,16 @@ onMounted(async () => {
 <div class="app-container">
     <div class="load-container" v-if="onLoad">
         <Icon icon="line-md:loading-loop" class="text-blue-600"width="120"/>
+    </div>
+    <div class="flex gap-5" v-else-if="isNullInfo">
+        <div class="flex flex-col w-[70%] gap-2">
+            <p class="titleColor">Данные не найдены</p>
+            <p class="text-[25px] font-semibold">Компнаия не найдена в базе DaData</p>
+            <div class="w-[45px] h-[3px]" style="background-color: #D6006C;"></div>
+        </div>
+        <div class="flex flex-col">
+            <p class="w-[70%]">В карточке не заполнен ИНН или компания по такому ИНН не найдена. Заполните реквезиты компании</p>
+        </div>
     </div>
     <table class="tableData" v-else>
         <colgroup>
@@ -31,25 +134,25 @@ onMounted(async () => {
                     <div class="flex flex-col gap-2">
                         <p class="text-sm titleColor">Статус компании</p>
                         <div class="flex text-lg font-semibold items-center gap-4">
-                            <div style="height: 10px; width: 10px; border-radius: 50%; background-color: aquamarine;"></div>
-                            <p>Действующая</p>
+                            <div style="height: 10px; width: 10px; border-radius: 50%;" :style="`background-color: ${CompanyStatusColor[companyInfo?.data.state?.status ?? 'UNKNOWN'] }`" ></div>
+                            <p>{{ CompanyStatus[companyInfo?.data.state?.status ?? 'UNKNOWN'] }}</p>
                         </div>
-                        <p style="width: 70%;" class="text-sm backTextColor">Сведения о недостоверности не внесены. Проверено 31.08.2026.</p>
+                        <p style="width: 70%;" class="text-sm backTextColor">Сведения на данный момент.</p>
                     </div>
                     <div class="grayLine my-[15px]"></div>
                     <div class="flex flex-col gap-4">
                         <div class="flex flex-col gap-1">
                             <p class="text-sm titleColor">Дата регистрациии</p>
-                            <p>14 марта 2015</p>
-                            <p style="width: 70%;" class="text-sm backTextColor">11 лет 5 месяцев на рынке</p>
+                            <p>{{ companyRegistartionDate ?? "Нету информации" }}</p>
+                            <p style="width: 70%;" class="text-sm backTextColor">{{ companyRegistartionDateString }}</p>
                         </div>
                         <div class="flex flex-col gap-1">
                             <p class="text-sm titleColor">Форма</p>
-                            <p>ООО коммерческая</p>
+                            <p>{{ companyInfo?.data.opf.short }} {{ orgType[companyInfo?.data.type ?? "UNKNOWN"] }}</p>
                         </div>
                         <div class="flex flex-col gap-1">
                             <p class="text-sm titleColor">Основной ОКВЭД</p>
-                            <p style="width: 70%;">46.90 — Торговля оптовая неспециализированная</p>
+                            <p style="width: 70%;">{{ companyOKVED?.data.kod }} — {{ companyOKVED?.data.name }}</p>
                         </div>
                     </div>
                     <div class="grayLine my-[15px]"></div>
@@ -60,58 +163,63 @@ onMounted(async () => {
                         <div class="flex gap-20">
                             <div class="flex flex-col gap-[2px]">
                                 <p class="backTextColor text-sm">ИНН</p>
-                                <p>7707083893</p>
+                                <p>{{ companyInfo?.data.inn }}</p>
                             </div>
                             <div class="flex flex-col gap-[2px]">
                                 <p class="backTextColor text-sm">КПП</p>
-                                <p>7707083893</p>
+                                <p>{{ companyInfo?.data.kpp }}</p>
                             </div>
                             <div class="flex flex-col gap-[2px]">
                                 <p class="backTextColor text-sm">ОГРН</p>
-                                <p>7707083893</p>
+                                <p>{{ companyInfo?.data.ogrn }}</p>
                             </div>
                         </div>
                         <div class="flex gap-20">
                             <div style="width: 50%;" class="flex flex-col gap-[2px]">
                                 <p class="backTextColor text-sm">Юридический адрес</p>
-                                <p>109012, г. Москва, ул. Ильинка, д. 4, эт. 5, оф. 512</p>
-                            </div>
-                            <div style="width: 50%;" class="flex flex-col gap-[2px]">
-                                <p class="backTextColor text-sm">Фактический адрес</p>
-                                <p>143404, МО, г. Красногорск, Ильинский б-р, д. 4, стр. 2</p>
+                                <p>{{ companyInfo?.data.address.unrestricted_value }}</p>
                             </div>
                         </div>
                     </div>
                     <div class="flex flex-col gap-3">
                         <p class="titleColor">Руководитель и учредители</p>
                         <div class="flex gap-2 items-center">
-                            <p class="text-lg">Смирнова Анна Петровна</p>
-                            <p class="text-sm backTextColor">Генеральный директор · с 12.09.2019</p>
+                            <p class="text-lg">{{ companyInfo?.data.management?.name }}</p>
+                            <p class="text-sm backTextColor">{{ companyInfo?.data.management?.post }} · {{ managerStartDate ? "c " + managerStartDate : '' }}</p>
                         </div>
                         <div class="blue-box">
-                            <p class="text-sm font-light">ИНН 771234567890</p>
+                            <p class="text-sm font-light">{{ companyInfo?.data.name.short_with_opf }}</p>
                         </div>
-                    </div>
-                    <div class="table my-[10px]">
-                        <div>Смирнова Анна Петровна</div>
-                        <div class="backTextColor">60 %</div>
-                        <div class="backTextColor">720 000 ₽</div>
                     </div>
                     <p class="my-5 titleColor">Контакты</p>
                     <div class="flex gap-5">
-                        <div class="flex flex-col gap-1">
+                        <div class="flex flex-col gap-1" v-if="companyBrand?.data.domain">
                         <p class="backTextColor">Сайт</p>
-                        <link>romashka-trade.ru</link>
+                        <a :href="'https://' + companyBrand.data.domain">{{ companyBrand?.data.domain }}</a>
                     </div>
-                    <div class="flex flex-col gap-1">
+                    <div class="flex flex-col gap-1" v-if="companyInfo?.data.phones">
                         <p class="backTextColor">Телефоны</p>
-                        <p>+7 495 120-34-56</p>
-                        <p class="backTextColor">+7 800 555-01-22</p>
+                        <p>{{ companyInfo.data.phones }}</p>
                     </div>
-                    <div class="flex flex-col gap-1">
+                    <div class="flex flex-col gap-1" v-if="companyInfo?.data.emails">
                         <p class="backTextColor">E-mail</p>
-                        <a href="">info@romashka-trade.ru</a>
-                        <a class="backTextColor">info@romashka-trade.ru</a>
+                        <a href="">{{ companyInfo?.data.emails }}</a>
+                    </div>
+                    </div>
+                    <p class="my-5 titleColor">Информация</p>
+                    <div class="flex gap-5">
+                        <div class="flex flex-col gap-1" v-if="companyBrand?.data.domain">
+                        <p class="backTextColor">Название</p>
+                        <p>{{ companyInfo?.data.name.full_with_opf }}</p>
+                        <NuxtImg class="wrapper" v-if="companyBrand.data.logo_url" :src="companyBrand.data.logo_url"/>
+                    </div>
+                    <div class="flex flex-col gap-1" v-if="companyInfo?.data.phones">
+                        <p class="backTextColor">Телефоны</p>
+                        <p>{{ companyInfo.data.phones }}</p>
+                    </div>
+                    <div class="flex flex-col gap-1" v-if="companyInfo?.data.emails">
+                        <p class="backTextColor">E-mail</p>
+                        <a href="">{{ companyInfo?.data.emails }}</a>
                     </div>
                     </div>
                 </td>
@@ -177,5 +285,10 @@ onMounted(async () => {
 }
 .backTextColor{
     color: #605D5D;
+}
+.wrapper {
+  display: flex;
+  align-items: center;      /* по вертикали */
+  justify-content: center;  /* по горизонтали */
 }
 </style>

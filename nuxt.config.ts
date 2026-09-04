@@ -9,12 +9,15 @@ export default defineNuxtConfig({
     '@bitrix24/b24jssdk-nuxt',
     '@pinia/nuxt',
     '@nuxtjs/tailwindcss',
+    '@nuxt/image',
   ],
   runtimeConfig: {
     public :{
       BaseUri : "http://localhost:3000"
     },
     Token : "",
-    DadataPath : ""
+    DadataPath : "",
+    DadataPathBrand : "",
+    SecretKey  : ""
   },
 })

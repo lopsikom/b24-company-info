@@ -1,5 +1,6 @@
 import z from "zod";
 import axiosHandler from "~~/server/services/DaDataHandler";
+import { CompanyWithBrandData } from "~~/shared/models/ApiModels";
 
 export default defineEventHandler(async (event) => {
 
@@ -16,7 +17,10 @@ export default defineEventHandler(async (event) => {
                 statusMessage : "Not Found"
             })
         }
-        return data
+        const [dataBrand, okved] = await Promise.all([axiosHandler.getBrandByInn(inn.data.toString()),
+            data.suggestions[0]!.data.okved ? axiosHandler.getOKVEDCompany(data.suggestions[0]!.data.okved.toString()) : null,
+        ])
+        return {data : data, brand : dataBrand && typeof dataBrand != "string" && dataBrand.suggestions.length >= 1 ? dataBrand : null, okved : okved } as CompanyWithBrandData
     }catch(e : any){
         console.log(e)
         if(e.statusCode) {

@@ -1,5 +1,6 @@
 export interface DadataPartyData {
-  inn: string;
+  data : {
+    inn: string;
   kpp: string | null;
   kpp_largest: string | null;
   ogrn: string;
@@ -51,6 +52,8 @@ export interface DadataPartyData {
     post: string;
     start_date: number;
   } | null;
+  phones: string | null,
+  emails: string | null,
  
   branch_count: number;
   branch_type: 'MAIN' | 'BRANCH';
@@ -96,6 +99,7 @@ export interface DadataPartyData {
       short: string;
     };
   } | null;
+  }
 }
  
 interface DadataAuthority {
@@ -103,4 +107,33 @@ interface DadataAuthority {
   code: string;
   name: string;
   address: string;
+}
+
+export interface DadataBrandData {
+  data : {
+    domain: string | null;
+    name: string;
+    inn: string;
+    summary: string | null;
+    logo_url: string | null;
+    telegram_url: string | null;
+    vk_url: string | null;
+    wildberries_url: string | null;
+    yandex_maps_url: string | null;
+    youtube_url: string | null;
+  }
+}
+export type CompanyWithBrandData = {
+    data : { suggestions : DadataPartyData[]},
+    brand : { suggestions : DadataBrandData[]} | null,
+    okved : {suggestions : OkvedData[]} | null
+}
+export interface OkvedData  {
+  value : string,
+  data : {
+    idx : string,
+    razdel : string,
+    kod : string,
+    name : string
+  }
 }
