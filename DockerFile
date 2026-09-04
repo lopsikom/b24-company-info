@@ -1,0 +1,25 @@
+FROM node:lts-alpine3.22
+WORKDIR /app
+
+COPY . .
+ARG PORT=3000
+ARG TOKEN
+ARG SECRET
+ARG DADATA_PATH=https://suggestions.dadata.ru/suggestions/api/4_1/rs/
+ARG DADATA_PATH_BRABD=https://api.dadata.ru/
+ARG BASE_URI
+
+ENV PORT=$PORT
+ENV NUXT_TOKEN=$TOKEN
+ENV NUXT_SECRET_KEY=$SECRET
+ENV NUXT_DADATA_PATH=$DADATA_PATH
+ENV NUXT_DADATA_PATH_BRAND=$DADATA_PATH_BRABD
+ENV NUXT_PUBLIC_BASE_URI=$BASE_URI
+
+RUN npm ci
+
+RUN npm run build
+
+EXPOSE 3000
+
+CMD ["node", ".output/server/index.mjs"]
