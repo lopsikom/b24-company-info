@@ -30,8 +30,6 @@ export class DaDataHandler extends AxiosHandler {
 
 const token = useRuntimeConfig().Token
 const SecretKey = useRuntimeConfig().SecretKey
-console.log(token)
-console.log(SecretKey)
 const axiosHandler = new DaDataHandler("", {header : {"Authorization" : "Token " + token, "X-Secret" : SecretKey}})
 
 export default axiosHandler

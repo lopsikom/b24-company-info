@@ -7,7 +7,7 @@ export class BitrixHandler {
     }
 
     get frame() : B24Frame {
-        return this.frame 
+        return this._frame 
     }
     async companyRequisite(id? : string | number) : Promise<IRequisite[]> {
         return (await this._frame.actions.v2.call.make({

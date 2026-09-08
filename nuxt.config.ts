@@ -20,4 +20,12 @@ export default defineNuxtConfig({
     DadataPathBrand : "",
     SecretKey  : ""
   },
+  app: {
+    baseURL: process.env.NUXT_PUBLIC_BASE_URL ?? '/b24/'
+  },
+  vite: {
+    server: {
+      allowedHosts: ['ib.minta365.ru']
+    }
+  },
 })

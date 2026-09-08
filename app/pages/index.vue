@@ -12,9 +12,9 @@ const isNullInfo = ref<boolean>(false);
 enum CompanyStatus  {
     "ACTIVE" = "Действующая",
     "LIQUIDATING" = "Ликвидируется",
-    "LIQUIDATED" = "Kиквидирована",
+    "LIQUIDATED" = "Ликвидирована",
     "BANKRUPT" = "Банкротство",
-    "REORGANIZING" = "Реоргонизация",
+    "REORGANIZING" = "Реорганизация",
     "UNKNOWN" = "Неизвестно"
 }
 enum CompanyStatusColor  {
@@ -43,21 +43,19 @@ const companyOKVED = computed(() => companyData.value?.okved?.suggestions[0] ?? 
 const managerStartDate = computed(() => {
     if(!companyInfo.value?.data.management?.start_date) return null
     const date = new Date(companyInfo.value?.data.management?.start_date);
-    return `${date.getDate() < 10 ? 0 : ''}${date.getDate()}.${date.getMonth() < 10 ? 0 : ''}${date.getMonth() + 1}.${date.getFullYear() }`
+    return Intl.DateTimeFormat("ru-RU").format(date)
 })
 
 const companyRegistartionDate = computed(() => {
     if(!companyInfo.value?.data.state.registration_date) return null
     const date = new Date(companyInfo.value?.data.state.registration_date);
-    return `${date.getDate() < 10 ? 0 : ''}${date.getDate()}.${date.getMonth() < 10 ? 0 : ''}${date.getMonth() + 1}.${date.getFullYear() }`
+    return Intl.DateTimeFormat("ru-RU").format(date)
 })
 
 const companyRegistartionDateString = computed(() => {
     if(!companyInfo.value?.data.state.registration_date) return null
     const date = new Date(companyInfo.value?.data.state.registration_date);
-    const diffDate = new Date((new Date()).getTime() - date.getTime());
-    const diffYear = (new Date()).getFullYear() - date.getFullYear(); 
-    return `${diffYear <= 0 ? '' : diffYear + ' лет'} ${diffDate.getMonth() + 1 + ' месяцев'} на рынке`
+    return Intl.DateTimeFormat("ru-RU").format(date)
 })
 
 onMounted(async () => {
@@ -83,6 +81,9 @@ onMounted(async () => {
     }catch(e){
         console.error(e);
         inn = "2124040602";
+        // isNullInfo.value = true;
+        // onLoad.value = false;
+        // return
     }
     try{
         companyData.value = await $api.getCompanyByInn(inn!)
@@ -92,7 +93,6 @@ onMounted(async () => {
             return
         }
         onLoad.value = false
-        console.log(companyData.value)
     }catch(e : unknown){
         if(e instanceof AxiosError){
             if(e.status === 404){
@@ -116,11 +116,11 @@ onMounted(async () => {
     <div class="flex gap-5" v-else-if="isNullInfo">
         <div class="flex flex-col w-[70%] gap-2">
             <p class="titleColor">Данные не найдены</p>
-            <p class="text-[25px] font-semibold">Компнаия не найдена в базе DaData</p>
+            <p class="text-[25px] font-semibold">Компания не найдена в базе DaData</p>
             <div class="w-[45px] h-[3px]" style="background-color: #D6006C;"></div>
         </div>
         <div class="flex flex-col">
-            <p class="w-[70%]">В карточке не заполнен ИНН или компания по такому ИНН не найдена. Заполните реквезиты компании</p>
+            <p class="w-[70%]">В карточке не заполнен ИНН или компания по такому ИНН не найдена. Заполните реквизиты компании</p>
         </div>
     </div>
     <table class="tableData" v-else>
@@ -142,8 +142,8 @@ onMounted(async () => {
                     <div class="grayLine my-[15px]"></div>
                     <div class="flex flex-col gap-4">
                         <div class="flex flex-col gap-1">
-                            <p class="text-sm titleColor">Дата регистрациии</p>
-                            <p>{{ companyRegistartionDate ?? "Нету информации" }}</p>
+                            <p class="text-sm titleColor">Дата регистрации</p>
+                            <p>{{ companyRegistartionDate ?? "Информация отсуствует" }}</p>
                             <p style="width: 70%;" class="text-sm backTextColor">{{ companyRegistartionDateString }}</p>
                         </div>
                         <div class="flex flex-col gap-1">
@@ -159,7 +159,7 @@ onMounted(async () => {
                 </td>
                 <td>
                     <div class="flex flex-col gap-5">
-                        <p class="text-sm titleColor">Реквезиты</p>
+                        <p class="text-sm titleColor">Реквизиты</p>
                         <div class="flex gap-20">
                             <div class="flex flex-col gap-[2px]">
                                 <p class="backTextColor text-sm">ИНН</p>
