@@ -9,11 +9,15 @@ const {$api} = useNuxtApp()
 
 const isNullInfo = ref<boolean>(false);
 
+const isError = ref<boolean>(true);
+const errorText = ref<string| null>(null)
+const errorData = ref<string>()
+
 enum CompanyStatus  {
     "ACTIVE" = "Действующая",
-    "LIQUIDATING" = "Ликвидируется",
     "LIQUIDATED" = "Ликвидирована",
     "BANKRUPT" = "Банкротство",
+    "LIQUIDATING" = "Ликвидируется",
     "REORGANIZING" = "Реорганизация",
     "UNKNOWN" = "Неизвестно"
 }
@@ -64,6 +68,7 @@ onMounted(async () => {
         const requsites = await handler.companyRequisite()
         if(requsites.length <= 0){
             onLoad.value = false;
+            isNullInfo.value = true;
             return
         }
         let noneInn = true
@@ -76,14 +81,16 @@ onMounted(async () => {
         }
         if(noneInn && !inn){ 
             onLoad.value = false
+            isNullInfo.value = true;
             return
         }
     }catch(e){
         console.error(e);
-        inn = "2124040602";
-        // isNullInfo.value = true;
-        // onLoad.value = false;
-        // return
+        isError.value = true;
+        errorText.value = "Ошибка работы Bitrix SDK"
+        errorData.value = String(e)
+        onLoad.value = false;
+        return
     }
     try{
         companyData.value = await $api.getCompanyByInn(inn!)
@@ -102,7 +109,11 @@ onMounted(async () => {
             }
         }else{
             console.error(e)
-            onLoad.value = false
+            isError.value = true;
+            errorData.value = String(e)
+            errorText.value = "Ошибка при работае с DaData"
+            onLoad.value = false;
+            return
         }
     }
 })
@@ -122,6 +133,11 @@ onMounted(async () => {
         <div class="flex flex-col">
             <p class="w-[70%]">В карточке не заполнен ИНН или компания по такому ИНН не найдена. Заполните реквизиты компании</p>
         </div>
+    </div>
+    <div class="flex flex-col gap-5" v-else-if="isError">
+        <p class="text-[35px] titleColor">Ошибка</p>
+        <p class="text-lg">{{ errorText ?? "Неизвестная ошибка" }}</p>
+        <p class="backTextColor">{{ errorData }}</p>
     </div>
     <table class="tableData" v-else>
         <colgroup>
